@@ -1,0 +1,37 @@
+version: '3.4'
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: client
+    hostname: client
+    environment:
+      - spring.application.name=my_application
+      - spring.config.import=optional:configserver:http://config:8888
+      - spring.profiles.active=prod
+    ports:
+      - 8080:8080
+    depends_on:
+      config:
+        condition: service_healthy
+
+  config:
+    image: tiogars/config:latest
+    container_name: config
+    hostname: config
+    # ports:
+    #   - 8888:8888
+    healthcheck:
+      test: "curl --fail --silent config:8888/actuator/health | grep UP || exit 1"
+      interval: 2s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+    volumes:
+      - ./demo/config:/usr/local/lib/config:ro
+
+volumes:
+  config:
+    external: true
